@@ -1,0 +1,11 @@
+**/.env
+
+**/.venv
+
+**/weights
+**/plots
+
+**/__pycache__
+**/.ipynb_checkpoints
+
+**/*.sh
