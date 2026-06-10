@@ -81,7 +81,12 @@ def main():
     parser.add_argument("--data_root", type=str, default=os.environ.get("RESUNET_DATA_ROOT"))
     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
     
     print("Loading model")
     model = ResUNet().to(device)

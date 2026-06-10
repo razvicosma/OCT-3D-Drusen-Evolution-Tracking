@@ -84,6 +84,9 @@ def smooth_mask_edges(masks, kernel=9, device=torch.device("cpu")):
         if torch.cuda.is_available():
             torch.cuda.synchronize()
             torch.cuda.empty_cache()
+        elif torch.backends.mps.is_available():
+            torch.mps.synchronize()
+            torch.mps.empty_cache()
 
     out = out_t.cpu().numpy()
 
@@ -91,6 +94,8 @@ def smooth_mask_edges(masks, kernel=9, device=torch.device("cpu")):
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+    elif torch.backends.mps.is_available():
+        torch.mps.empty_cache()
 
     return out
 
