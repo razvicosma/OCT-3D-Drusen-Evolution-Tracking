@@ -1,6 +1,7 @@
 import torch
 from tqdm import tqdm
 from skimage.metrics import structural_similarity as ssim
+from pytorch_msssim import ms_ssim
 
 from scripts.resunet.config import ALPHA, PIXELS_PER_DEGREE
 
@@ -32,6 +33,7 @@ def validate(model, loader, criterion, criterion2, device, alpha=ALPHA):
     model.eval()
     total_loss = 0
     total_ssim = 0
+    total_ms_ssim = 0
     total_ldr_loss = 0
     n_samples = 0
 
@@ -47,6 +49,9 @@ def validate(model, loader, criterion, criterion2, device, alpha=ALPHA):
             loss = (1-alpha)*criterion(pred, original) + alpha*ldr_loss
             total_loss += loss.item()
             total_ldr_loss += ldr_loss.item()
+            
+            ms_ssim_val = ms_ssim(pred, original, data_range=1.0, size_average=True)
+            total_ms_ssim += ms_ssim_val.item() * pred.size(0)
 
             pred_np = pred.cpu().numpy()[:, 0]
             orig_np = original.cpu().numpy()[:, 0]
@@ -55,5 +60,5 @@ def validate(model, loader, criterion, criterion2, device, alpha=ALPHA):
                 total_ssim += ssim(p, o, data_range=1.0)
                 n_samples += 1
 
-    return total_loss / len(loader), total_ssim / n_samples, total_ldr_loss / len(loader)
+    return total_loss / len(loader), total_ssim / n_samples, total_ms_ssim / n_samples, total_ldr_loss / len(loader)
 

@@ -60,11 +60,11 @@ def main():
     for epoch in range(args.epochs):
 
         t_loss = train(model, train_loader, optimizer, criterion, criterion2, device, ALPHA)
-        v_loss, v_ssim, v_flip = validate(model, val_loader, criterion, criterion2, device, ALPHA)
+        v_loss, v_ssim, v_ms_ssim, v_flip = validate(model, val_loader, criterion, criterion2, device, ALPHA)
         
         scheduler.step(v_loss)
         current_lr = optimizer.param_groups[0]['lr']
-        print(f"Epoch {epoch+1:3d} | LR: {current_lr:.6f} | Train: {t_loss:.4f} | Val: {v_loss:.4f} | SSIM: {v_ssim:.4f} | FLIP: {v_flip:.4f}")
+        print(f"Epoch {epoch+1:3d} | LR: {current_lr:.6f} | Train: {t_loss:.4f} | Val: {v_loss:.4f} | SSIM: {v_ssim:.4f} | MS-SSIM: {v_ms_ssim:.4f} | FLIP: {v_flip:.4f}")
 
         if v_loss < best_loss:
             best_loss = v_loss

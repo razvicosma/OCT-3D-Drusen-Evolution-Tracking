@@ -10,3 +10,4 @@ napari[all]==0.7.0
 PyOpenGL==3.1.10
 PyOpenGL-accelerate==3.1.10
 python-dotenv==1.2.2
+pytorch-msssim==1.0.0
