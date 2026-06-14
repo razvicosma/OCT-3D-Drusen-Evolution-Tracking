@@ -18,6 +18,11 @@ AUG_NOISE_STD = 0.02
 
 BACKBONE_WEIGHTS = os.path.join(ROOT_DIR, "weights", "dinov3_vitb16_pretrain_lvd1689m-73cec8be.pth")
 WEIGHTS_PATH = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter.pth")
+FINETUNE_WEIGHTS_PATH = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned.pth")
+
+UNLABELED_DIR = os.environ.get("DINO_UNLABELED_ROOT")
+VIS_DIR = os.environ.get("DINO_VIS_ROOT")
+DATA_DIR = os.environ.get("DINO_DATA_ROOT")
 
 PLOTS_DIR = os.path.join(ROOT_DIR, "plots")
 CONFUSION_MATRIX_PLOT_PATH = os.path.join(PLOTS_DIR, "latest_confusion_matrix.png")

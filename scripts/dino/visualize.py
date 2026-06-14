@@ -54,44 +54,55 @@ def plot_confusion_matrix(model, dataset, device, batch_size, num_workers=4):
     plt.close(fig_cm)
 
 
-def plot_sample_predictions(model, dataset, device, num_samples=3):
+def plot_sample_predictions(model, dataset, device, num_samples=3, teacher_model=None):
 
     model.eval()
-    
+    if teacher_model is not None:
+        teacher_model.eval()
+
     indices = random.sample(range(len(dataset)), num_samples)
     fig, axes = plt.subplots(num_samples, 3, figsize=(12, 4 * num_samples))
-    
+
     with torch.no_grad():
         for i, idx in enumerate(indices):
             image, mask = dataset[idx]
-            
+
             img_tensor = image.unsqueeze(0).to(device)
             logits = model(img_tensor)
             pred_mask = torch.argmax(logits, dim=1).squeeze(0).cpu().numpy()
-            
+
             display_img = image.permute(1, 2, 0).numpy()
             display_img = (display_img * IMAGENET_STD + IMAGENET_MEAN).clip(0, 1)
-            display_mask = mask.numpy()
-            
+
+            if teacher_model is not None:
+                teacher_logits = teacher_model(img_tensor)
+                middle_mask = torch.argmax(teacher_logits, dim=1).squeeze(0).cpu().numpy()
+                middle_title = "Teacher Pseudo-Labels"
+                pred_title = "Student Prediction"
+            else:
+                middle_mask = mask.numpy()
+                middle_title = "Ground Truth Mask"
+                pred_title = "Predicted Mask"
+
             axes[i, 0].imshow(display_img, cmap='gray')
             axes[i, 0].set_title("Original Image")
             axes[i, 0].axis('off')
-            
-            axes[i, 1].imshow(display_mask, cmap='tab10', vmin=0, vmax=NUM_CLASSES - 1)
-            axes[i, 1].set_title("Ground Truth Mask")
+
+            axes[i, 1].imshow(middle_mask, cmap='tab10', vmin=0, vmax=NUM_CLASSES - 1)
+            axes[i, 1].set_title(middle_title)
             axes[i, 1].axis('off')
-            
+
             axes[i, 2].imshow(pred_mask, cmap='tab10', vmin=0, vmax=NUM_CLASSES - 1)
-            axes[i, 2].set_title("Predicted Mask")
+            axes[i, 2].set_title(pred_title)
             axes[i, 2].axis('off')
-            
+
     plt.tight_layout()
     plt.savefig(PREDICTIONS_PLOT_PATH)
     plt.close()
 
 
-def visualize_predictions(model, dataset, device, batch_size, num_workers=4, num_samples=3):
+def visualize_predictions(model, dataset, device, batch_size, num_workers=4, num_samples=3, teacher_model=None):
 
     os.makedirs(PLOTS_DIR, exist_ok=True)
     plot_confusion_matrix(model, dataset, device, batch_size, num_workers)
-    plot_sample_predictions(model, dataset, device, num_samples)
+    plot_sample_predictions(model, dataset, device, num_samples, teacher_model=teacher_model)

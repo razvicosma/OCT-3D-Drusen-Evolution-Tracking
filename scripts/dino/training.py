@@ -62,9 +62,7 @@ def train(model, loader, optimizer, criterion, device, epoch, epochs):
     model.train()
     train_loss = 0
 
-    progress_bar = tqdm(loader, desc=f"Epoch {epoch+1}/{epochs}")
-    
-    for images, masks in progress_bar:
+    for images, masks in tqdm(loader, desc=f"Epoch {epoch+1}/{epochs}"):
         images, masks = images.to(device), masks.to(device)
 
         optimizer.zero_grad()
@@ -103,3 +101,74 @@ def validate(model, loader, criterion, device):
     n = len(loader)
 
     return val_loss / n, val_ce / n, val_dice / n
+
+def validate_unsupervised(model, loader, criterion, device):
+
+    model.eval()
+    val_loss = 0
+    val_ce = 0
+    val_dice = 0
+    val_sobel = 0
+    val_contiguity = 0
+
+    with torch.no_grad():
+        for images, masks in tqdm(loader, desc="Validating (Unsupervised)"):
+            images, masks = images.to(device), masks.to(device)
+            outputs = model(images)
+
+            loss = criterion(outputs, masks)
+            ce_loss = criterion.ce(outputs, masks)
+            dice_loss = criterion.dice(outputs, masks)
+            sobel_loss = criterion.sobel(outputs)
+            contiguity_loss = criterion.contiguity(outputs)
+
+            val_loss += loss.item()
+            val_ce += ce_loss.item()
+            val_dice += dice_loss.item()
+            val_sobel += sobel_loss.item()
+            val_contiguity += contiguity_loss.item()
+
+    n = len(loader)
+
+    return val_loss / n, val_ce / n, val_dice / n, val_sobel / n, val_contiguity / n
+
+def train_unsupervised(student_model, teacher_model, loader, optimizer, criterion, device, epoch, epochs):
+
+    student_model.train()
+    teacher_model.eval()
+    
+    total_loss = 0.0
+    total_ce = 0.0
+    total_dice = 0.0
+    total_sobel = 0.0
+    total_contig = 0.0
+
+    for images, _ in tqdm(loader, desc=f"Epoch {epoch+1}/{epochs}"):
+        images = images.to(device)
+
+        with torch.no_grad():
+            teacher_logits = teacher_model(images)
+            pseudo_masks = torch.argmax(teacher_logits, dim=1)
+
+        optimizer.zero_grad()
+
+        outputs = student_model(images)
+        loss = criterion(outputs, pseudo_masks)
+        
+        ce_loss = criterion.ce(outputs, pseudo_masks)
+        dice_loss = criterion.dice(outputs, pseudo_masks)
+        sobel_loss = criterion.sobel(outputs)
+        contig_loss = criterion.contiguity(outputs)
+        
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(student_model.parameters(), max_norm=1.0)
+        optimizer.step()
+
+        total_loss += loss.item()
+        total_ce += ce_loss.item()
+        total_dice += dice_loss.item()
+        total_sobel += sobel_loss.item()
+        total_contig += contig_loss.item()
+
+    n = len(loader)
+    return total_loss / n, total_ce / n, total_dice / n, total_sobel / n, total_contig / n
