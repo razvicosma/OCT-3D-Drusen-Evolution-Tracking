@@ -2,17 +2,22 @@ import os
 import argparse
 from dotenv import load_dotenv
 
+import cv2
 import timm
 import torch
+import numpy as np
 import torch.nn as nn
 from torch.utils.data import DataLoader, random_split
 
 from scripts.resunet.model import ResUNet
 from scripts.resunet.dataset import OCTDataset
 from scripts.resunet.flip_loss import LDRFLIPLoss
-from scripts.resunet.training import train, validate
+from scripts.resunet.training import train, validate, extract_spatial_dino_feature
 from scripts.resunet.visualize import visualize_results
-from scripts.resunet.config import ALPHA, SCHEDULER_PATIENCE, WEIGHTS_PATH, ROOT_DIR
+from scripts.resunet.config import (
+    ALPHA, SCHEDULER_PATIENCE, WEIGHTS_PATH, ROOT_DIR,
+    IMAGE_SIZE, DINO_REFERENCE_IMAGE, DINO_FEAT_PATH
+)
 
 
 def get_args():
@@ -26,6 +31,14 @@ def get_args():
     parser.add_argument('--num_workers', type=int, default=6)
 
     return parser.parse_args()
+
+
+def load_ref_image(path, size, device):
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    img = cv2.resize(img, size, interpolation=cv2.INTER_LINEAR)
+    img = img.astype(np.float32) / 255.0
+    tensor = torch.from_numpy(img).unsqueeze(0).unsqueeze(0)
+    return tensor.repeat(1, 3, 1, 1).to(device)
 
 
 def main():
@@ -65,6 +78,10 @@ def main():
     
     dino_model.eval()
 
+    ref_rgb = load_ref_image(DINO_REFERENCE_IMAGE, IMAGE_SIZE, device)
+    dino_feat = extract_spatial_dino_feature(dino_model, ref_rgb)
+    print(f"DINO feature map: {tuple(dino_feat.shape)}")
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     criterion = nn.L1Loss()
     criterion2 = LDRFLIPLoss().to(device)
@@ -74,8 +91,8 @@ def main():
 
     for epoch in range(args.epochs):
 
-        t_loss = train(model, dino_model, train_loader, optimizer, criterion, criterion2, device, ALPHA)
-        v_loss, v_ssim, v_flip = validate(model, dino_model, val_loader, criterion, criterion2, device, ALPHA)
+        t_loss = train(model, dino_feat, train_loader, optimizer, criterion, criterion2, device, ALPHA)
+        v_loss, v_ssim, v_flip = validate(model, dino_feat, val_loader, criterion, criterion2, device, ALPHA)
         
         scheduler.step(v_loss)
         current_lr = optimizer.param_groups[0]['lr']
@@ -86,7 +103,11 @@ def main():
             torch.save(model.state_dict(), WEIGHTS_PATH)
         
         if (epoch + 1) % 10 == 0:
-            visualize_results(model, dino_model, val_idx, device)
+            visualize_results(model, dino_feat, val_idx, device)
+
+    torch.save(dino_feat.cpu(), DINO_FEAT_PATH)
+    print(f"Saved DINO feature map to {DINO_FEAT_PATH}")
+
 
 if __name__ == "__main__":
     main()

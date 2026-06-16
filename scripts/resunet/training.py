@@ -4,36 +4,21 @@ from skimage.metrics import structural_similarity as ssim
 
 from scripts.resunet.config import ALPHA, PIXELS_PER_DEGREE
 
-def extract_cls_dino_feature(dino_model, x_rgb):
+def extract_spatial_dino_feature(dino_model, ref_rgb):
 
-    features = dino_model.forward_features(x_rgb)
-    cls_token = features[:, 0, :]
-    return cls_token
+    with torch.no_grad():
+        features = dino_model.forward_features(ref_rgb)
 
-def extract_and_resize_valid_columns(stripped, mask, target_size=(256, 256)):
+    n_prefix = dino_model.num_prefix_tokens
+    patch_tokens = features[:, n_prefix:, :]  # (1, N, D)
+    N, D = patch_tokens.shape[1], patch_tokens.shape[2]
+    h = w = int(N ** 0.5)
+    return patch_tokens.permute(0, 2, 1).reshape(1, D, h, w)
 
-    B = stripped.size(0)
-    resized_list = []
-    for i in range(B):
-        img_i = stripped[i, 0]
-        mask_i = mask[i, 0]
-        
-        valid_cols = mask_i[0] > 0.5
-        extracted = img_i[:, valid_cols]
-        
-        if extracted.size(1) == 0:
-            extracted = torch.zeros((512, 1), device=stripped.device)
-            
-        extracted = extracted.unsqueeze(0).unsqueeze(0)
-        resized = torch.nn.functional.interpolate(extracted, size=target_size, mode='bilinear', align_corners=False)
-        resized_list.append(resized.squeeze(0))
-        
-    return torch.stack(resized_list)
 
-def train(model, dino_model, loader, optimizer, criterion, criterion2, device, alpha=ALPHA):
+def train(model, dino_feat, loader, optimizer, criterion, criterion2, device, alpha=ALPHA):
 
     model.train()
-    dino_model.eval()
     total_loss = 0
 
     for stripped, original, mask in tqdm(loader, desc="Training"):
@@ -43,14 +28,8 @@ def train(model, dino_model, loader, optimizer, criterion, criterion2, device, a
 
         optimizer.zero_grad()
         inp = torch.cat([stripped, mask], dim=1)
-        
-        with torch.no_grad():
-            dino_input = extract_and_resize_valid_columns(stripped, mask, target_size=(256, 256))
-            in_c_rgb = dino_input.repeat(1, 3, 1, 1)
-            dino_embeds = extract_cls_dino_feature(dino_model, in_c_rgb)
 
-        pred = model(inp, dino_embeds)
-        
+        pred = model(inp, dino_feat.expand(stripped.size(0), -1, -1, -1))
         loss = (1-alpha)*criterion(pred, original) + alpha*criterion2(pred.expand(-1, 3, -1, -1), original.expand(-1, 3, -1, -1),pixels_per_degree=PIXELS_PER_DEGREE)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -60,10 +39,9 @@ def train(model, dino_model, loader, optimizer, criterion, criterion2, device, a
 
     return total_loss / len(loader)
 
-def validate(model, dino_model, loader, criterion, criterion2, device, alpha=ALPHA):
+def validate(model, dino_feat, loader, criterion, criterion2, device, alpha=ALPHA):
 
     model.eval()
-    dino_model.eval()
     total_loss = 0
     total_ssim = 0
     total_ldr_loss = 0
@@ -76,13 +54,7 @@ def validate(model, dino_model, loader, criterion, criterion2, device, alpha=ALP
             mask = mask.to(device)
 
             inp = torch.cat([stripped, mask], dim=1)
-            
-            dino_input = extract_and_resize_valid_columns(stripped, mask, target_size=(256, 256))
-            in_c_rgb = dino_input.repeat(1, 3, 1, 1)
-            dino_embeds = extract_cls_dino_feature(dino_model, in_c_rgb)
-
-            pred = model(inp, dino_embeds)
-            
+            pred = model(inp, dino_feat.expand(stripped.size(0), -1, -1, -1))
             l1_loss = criterion(pred, original)
             ldr_loss = criterion2(pred.expand(-1, 3, -1, -1), original.expand(-1, 3, -1, -1), pixels_per_degree=PIXELS_PER_DEGREE)
             

@@ -10,6 +10,8 @@ PERIOD_RANGE = (6, 20)
 PIXELS_PER_DEGREE = (0.7 * 3840 / 0.7) * np.pi / 180
 
 WEIGHTS_PATH = os.path.join(ROOT_DIR, "weights", "best_model_17k.pth")
+DINO_REFERENCE_IMAGE = os.path.join(ROOT_DIR, "015_Drusen.tif")
+DINO_FEAT_PATH = os.path.join(ROOT_DIR, "weights", "dino_ref_feat.pt")
 
 PLOTS_DIR = os.path.join(ROOT_DIR, "plots")
 RECONSTRUCTION_PLOT_PATH = os.path.join(PLOTS_DIR, "reconstruction_results.png")
