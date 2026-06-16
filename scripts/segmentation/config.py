@@ -17,6 +17,7 @@ NUM_SLICES = 32
 SMOOTHING_KERNEL = 9
 
 DINO_WEIGHTS = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter.pth")
+DINO_WEIGHTS_FINE = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned.pth")
 CHECKPOINT_PATH_RES = os.path.join(ROOT_DIR, "weights", "best_model_17k.pth")
 
 CLASS_NAMES = [

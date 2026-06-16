@@ -36,13 +36,19 @@ def load_resunet(checkpoint, device):
 
     return model
 
-def resunet_interpolate(sparse_volume, device, checkpoint=CHECKPOINT_PATH_RES, batch_size=INPAINT_BATCH):
+def resunet_interpolate(sparse_volume, device, checkpoint=CHECKPOINT_PATH_RES, batch_size=INPAINT_BATCH, progress_fn=None):
 
     model = load_resunet(checkpoint, device)
     num_slices, height, width = sparse_volume.shape
     inpaint_vol = np.zeros((width, height, IMAGE_SIZE), dtype=np.uint8)
 
-    for i in tqdm(range(0, width, batch_size), desc="Interpolating"):
+    steps = list(range(0, width, batch_size))
+    total = len(steps)
+    iterator = tqdm(enumerate(steps), total=total, desc="Interpolating") if progress_fn is None else enumerate(steps)
+
+    for step_idx, i in iterator:
+        if progress_fn:
+            progress_fn(step_idx + 1, total)
         curr = min(batch_size, width - i)
         canvases, masks_inp = [], []
 

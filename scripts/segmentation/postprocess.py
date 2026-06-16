@@ -62,14 +62,17 @@ def fill_between_boundaries(top_s, bot_s, H, device):
 
     return (row_idx >= t0) & (row_idx <= t1)
 
-def smooth_mask_edges(masks, kernel=9, device=torch.device("cpu")):
+def smooth_mask_edges(masks, kernel=9, device=torch.device("cpu"), progress_fn=None):
 
     D, H, W = masks.shape
     pad = kernel // 2
     out_t = torch.zeros((D, H, W), dtype=torch.uint8, device=device)
     masks_t = torch.from_numpy(masks).to(device)
 
-    for c in tqdm(range(NUM_CLASSES), desc="Smoothing edges"):
+    iterator = tqdm(range(NUM_CLASSES), desc="Smoothing edges") if progress_fn is None else range(NUM_CLASSES)
+    for c in iterator:
+        if progress_fn:
+            progress_fn(c + 1, NUM_CLASSES)
         binary = (masks_t == c)
 
         top, bot = class_boundaries(binary, H, device)
