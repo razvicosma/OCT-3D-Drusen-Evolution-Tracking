@@ -1,7 +1,6 @@
 import os
 import random
 import argparse
-from dotenv import load_dotenv
 
 import torch
 from torch.utils.data import DataLoader
@@ -13,23 +12,22 @@ from scripts.dino.dataset import OCTDataset, AugmentedOCTDataset, UnsupervisedOC
 from scripts.dino.training import build_optimizer, compute_class_weights, train, validate, train_unsupervised, validate_unsupervised
 from scripts.dino.config import (
     NUM_CLASSES, SCHEDULER_PATIENCE, WEIGHTS_PATH,
-    FINETUNE_WEIGHTS_PATH, UNLABELED_DIR, VIS_DIR, DATA_DIR
+    FINETUNE_WEIGHTS_PATH, UNLABELED_DIR, VIS_DIR, DATA_DIR,
+    VAL_DICE_CEILING, CONTIG_PLATEAU_WINDOW, CONTIG_PLATEAU_TOL
 )
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", type=str, choices=["train", "finetune"], default="train")
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--epochs", type=int, default=200)
+    parser.add_argument("--mode", type=str, choices=["train", "finetune"], default="finetune")
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--lr", type=float, default=1e-6)
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument("--unfreeze_blocks", type=int, default=5)
 
     return parser.parse_args()
 
 def main():
-    
-    load_dotenv()
 
     args = get_args()
 
@@ -137,9 +135,10 @@ def main():
         criterion = CombinedLoss(weight_ce=0.5, weight_dice=0.5, weight_sobel=1.0, weight_contiguity=1.0)
         
         optimizer = build_optimizer(model, args)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=SCHEDULER_PATIENCE, factor=0.5, min_lr=1e-8)
 
         best_train_contig = float('inf')
+        contig_history = []
+        dice_history = []
 
         for epoch in range(args.epochs):
             avg_train, train_ce, train_dice, train_sobel, train_contig = train_unsupervised(model, teacher_model, train_loader, optimizer, criterion, device, epoch, args.epochs)
@@ -159,7 +158,24 @@ def main():
                 f"Val_Sobel={avg_sobel:.4f} | Val_Contig={avg_contig:.4f}"
             )
 
-            scheduler.step(avg_val)
+            if avg_dice > VAL_DICE_CEILING:
+                break
+
+            contig_history.append(train_contig)
+            dice_history.append(avg_dice)
+
+            if len(contig_history) > CONTIG_PLATEAU_WINDOW:
+                contig_prev = contig_history[-CONTIG_PLATEAU_WINDOW - 1]
+                dice_prev = dice_history[-CONTIG_PLATEAU_WINDOW - 1]
+
+                contig_gain_rel = (contig_prev - train_contig) / contig_prev
+                dice_cost_rel = (avg_dice - dice_prev) / dice_prev
+
+                if contig_gain_rel < CONTIG_PLATEAU_TOL:
+                    break
+
+                if dice_cost_rel > 0 and dice_cost_rel > contig_gain_rel:
+                    break
 
             if train_contig < best_train_contig:
                 best_train_contig = train_contig
