@@ -43,7 +43,7 @@ class DINOv3Segmenter(nn.Module):
         super().__init__()
         
         backbone = timm.create_model(
-            'vit_base_patch16_dinov3.lvd1689m',
+            'vit_small_patch16_dinov3.lvd1689m',
             pretrained=False,
             pretrained_cfg_overlay=dict(file=BACKBONE_WEIGHTS),
             img_size=IMAGE_SIZE

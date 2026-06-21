@@ -124,3 +124,33 @@ class AugmentedOCTDataset(Dataset):
         image = (image - self.mean_t) / self.std_t
 
         return image, mask
+
+class UnsupervisedOCTDataset(Dataset):
+
+    def __init__(self, root_dir):
+
+        self.image_paths = []
+        valid_exts = ('.jpeg', '.jpg', '.png', '.tif', '.tiff')
+        
+        for dirpath, _, filenames in os.walk(root_dir):
+            for f in filenames:
+                if f.lower().endswith(valid_exts):
+                    self.image_paths.append(os.path.join(dirpath, f))
+
+    def __len__(self):
+
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+
+        img_path = self.image_paths[idx]
+        image = cv2.cvtColor(cv2.imread(img_path, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
+        image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
+        
+        mask = np.zeros((IMAGE_SIZE, IMAGE_SIZE), dtype=np.int64)
+
+        image = (image.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD
+        image = torch.from_numpy(image).float().permute(2, 0, 1)
+        mask  = torch.from_numpy(mask)
+        
+        return image, mask
