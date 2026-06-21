@@ -56,7 +56,7 @@ class DecoderBlock(nn.Module):
 
 class ResUNet(nn.Module):
 
-    def __init__(self, base_ch=64):
+    def __init__(self, base_ch=32):
 
         super().__init__()
 
@@ -64,11 +64,9 @@ class ResUNet(nn.Module):
         self.enc2 = EncoderBlock(base_ch, base_ch*2)
         self.enc3 = EncoderBlock(base_ch*2, base_ch*4)
         self.enc4 = EncoderBlock(base_ch*4, base_ch*8)
-        self.enc5 = EncoderBlock(base_ch*8, base_ch*16)
 
-        self.bottleneck = ResBlock(base_ch*16)
+        self.bottleneck = ResBlock(base_ch*8)
 
-        self.dec5 = DecoderBlock(base_ch*16, base_ch*8, base_ch*16)
         self.dec4 = DecoderBlock(base_ch*8, base_ch*4, base_ch*8)
         self.dec3 = DecoderBlock(base_ch*4, base_ch*2, base_ch*4)
         self.dec2 = DecoderBlock(base_ch*2, base_ch, base_ch*2)
@@ -82,11 +80,9 @@ class ResUNet(nn.Module):
         x, s2 = self.enc2(x)
         x, s3 = self.enc3(x)
         x, s4 = self.enc4(x)
-        x, s5 = self.enc5(x)
 
         x = self.bottleneck(x)
 
-        x = self.dec5(x, s5)
         x = self.dec4(x, s4)
         x = self.dec3(x, s3)
         x = self.dec2(x, s2)

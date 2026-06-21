@@ -16,9 +16,9 @@ SLICE_SIZE = (512, 512)
 NUM_SLICES = 32
 SMOOTHING_KERNEL = 9
 
-DINO_WEIGHTS = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter.pth")
-DINO_WEIGHTS_FINE = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned.pth")
-CHECKPOINT_PATH_RES = os.path.join(ROOT_DIR, "weights", "best_model_17k.pth")
+DINO_WEIGHTS = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_vits.pth")
+DINO_WEIGHTS_FINE = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned_vits.pth")
+CHECKPOINT_PATH_RES = os.path.join(ROOT_DIR, "weights", "best_model_17k_4layers_32ch.pth")
 
 CLASS_NAMES = [
     "ILM / RNFL",

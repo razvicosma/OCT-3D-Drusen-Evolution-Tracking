@@ -16,8 +16,8 @@ AUG_CONTRAST_JITTER = 0.2
 AUG_NOISE_STD = 0.02
 
 
-BACKBONE_WEIGHTS = os.path.join(ROOT_DIR, "weights", "dinov3_vitb16_pretrain_lvd1689m-73cec8be.pth")
-WEIGHTS_PATH = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter.pth")
+BACKBONE_WEIGHTS = os.path.join(ROOT_DIR, "weights", "dinov3_vits16_pretrain_lvd1689m-08c60483.pth")
+WEIGHTS_PATH = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_vits.pth")
 
 PLOTS_DIR = os.path.join(ROOT_DIR, "plots")
 CONFUSION_MATRIX_PLOT_PATH = os.path.join(PLOTS_DIR, "latest_confusion_matrix.png")

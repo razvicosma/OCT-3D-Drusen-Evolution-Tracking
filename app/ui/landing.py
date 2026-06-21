@@ -1,16 +1,17 @@
 import os
 from datetime import datetime
 
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QListWidget, QListWidgetItem, QFileDialog
 )
-from PySide6.QtCore import Qt, Signal
 
-_MAX_RECENT = 3
+from app.config import MAX_RECENT, PAGE_MARGINS
 
 
 def _age(ts):
+
     try:
         delta = datetime.now() - datetime.fromisoformat(ts)
         s = delta.total_seconds()
@@ -28,13 +29,15 @@ class LandingPage(QWidget):
     open_volume = Signal(str)
 
     def __init__(self, recent_list, parent=None):
+
         super().__init__(parent)
         self.recent_list = recent_list
         self._build()
 
     def _build(self):
+
         root = QVBoxLayout(self)
-        root.setContentsMargins(40, 40, 40, 32)
+        root.setContentsMargins(*PAGE_MARGINS)
         root.setSpacing(0)
 
         root.addStretch(1)
@@ -56,12 +59,12 @@ class LandingPage(QWidget):
         btn_row.setSpacing(16)
         btn_row.addStretch()
 
-        self.btn_folder = QPushButton("📁\n\nSelect Folder\n\nSparse OCT scans")
+        self.btn_folder = QPushButton("Select Folder\n\nSparse OCT scans")
         self.btn_folder.setObjectName("bigButton")
         self.btn_folder.setCursor(Qt.PointingHandCursor)
         self.btn_folder.clicked.connect(self._pick_folder)
 
-        self.btn_volume = QPushButton("🗄\n\nSelect Volume\n\nPre-built .npz file")
+        self.btn_volume = QPushButton("Select Volume\n\nPre-built .npz file")
         self.btn_volume.setObjectName("bigButton")
         self.btn_volume.setCursor(Qt.PointingHandCursor)
         self.btn_volume.clicked.connect(self._pick_volume)
@@ -100,12 +103,13 @@ class LandingPage(QWidget):
         self._populate_recent()
 
     def _populate_recent(self):
+
         self.recent_widget.clear()
-        for entry in self.recent_list[:_MAX_RECENT]:
-            icon = "📁" if entry["kind"] == "folder" else "🗄"
+        for entry in self.recent_list[:MAX_RECENT]:
+            kind = "Folder" if entry["kind"] == "folder" else "Volume"
             name = os.path.basename(entry["path"]) or entry["path"]
             age = _age(entry.get("timestamp", ""))
-            item = QListWidgetItem(f"{icon}  {name}    {age}\n      {entry['path']}")
+            item = QListWidgetItem(f"{kind}  {name}    {age}\n      {entry['path']}")
             item.setData(Qt.UserRole, entry)
             self.recent_widget.addItem(item)
 
@@ -117,6 +121,7 @@ class LandingPage(QWidget):
         self._fit_recent_height()
 
     def _fit_recent_height(self):
+
         count = self.recent_widget.count()
         if count == 0:
             self.recent_widget.setFixedHeight(0)
@@ -129,20 +134,24 @@ class LandingPage(QWidget):
         self.recent_widget.setFixedHeight(total + frame + padding)
 
     def refresh_recent(self, recent_list):
+
         self.recent_list = recent_list
         self._populate_recent()
 
     def _pick_folder(self):
+
         path = QFileDialog.getExistingDirectory(self, "Select Sparse OCT Folder")
         if path:
             self.open_folder.emit(path)
 
     def _pick_volume(self):
+
         path, _ = QFileDialog.getOpenFileName(self, "Select Volume", filter="NumPy (*.npz *.npy)")
         if path:
             self.open_volume.emit(path)
 
     def _open_recent(self, item):
+
         entry = item.data(Qt.UserRole)
         if not entry:
             return

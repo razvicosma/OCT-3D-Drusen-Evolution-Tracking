@@ -1,32 +1,34 @@
-import json
 import os
+import json
 from datetime import datetime
 
-SETTINGS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings.json")
-MAX_RECENT = 3
+from app.config import SETTINGS_PATH, MAX_RECENT, MODEL_BASE
 
-_defaults = {
+DEFAULT_SETTINGS = {
     "reconstruction": True,
     "segmentation": True,
-    "model": "dinov3",
+    "model": MODEL_BASE,
     "recent": [],
 }
 
 
 def load_settings():
+
     if os.path.exists(SETTINGS_PATH):
         with open(SETTINGS_PATH) as f:
             data = json.load(f)
-        return {**_defaults, **data}
-    return dict(_defaults)
+        return {**DEFAULT_SETTINGS, **data}
+    return dict(DEFAULT_SETTINGS)
 
 
 def save_settings(settings):
+
     with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)
 
 
 def add_recent(settings, path, kind):
+
     recent = settings.get("recent", [])
     recent = [r for r in recent if r["path"] != path]
     recent.insert(0, {

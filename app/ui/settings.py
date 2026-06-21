@@ -1,13 +1,16 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QCheckBox,
     QRadioButton, QButtonGroup, QPushButton, QGroupBox
 )
-from PySide6.QtCore import Qt
+
+from app.config import MODEL_BASE, MODEL_FINE
 
 
 class SettingsDialog(QDialog):
 
     def __init__(self, settings, parent=None):
+
         super().__init__(parent)
         self.setWindowTitle("Preferences")
         self.setMinimumWidth(380)
@@ -15,6 +18,7 @@ class SettingsDialog(QDialog):
         self._build()
 
     def _build(self):
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
@@ -47,7 +51,7 @@ class SettingsDialog(QDialog):
         group.addButton(self.rb_base)
         group.addButton(self.rb_fine)
 
-        if self._settings.get("model") == "dinov3fine":
+        if self._settings.get("model") == MODEL_FINE:
             self.rb_fine.setChecked(True)
         else:
             self.rb_base.setChecked(True)
@@ -71,20 +75,24 @@ class SettingsDialog(QDialog):
         layout.addLayout(btn_row)
 
     def _enforce_at_least_one(self):
+
         if not self.chk_recon.isChecked() and not self.chk_seg.isChecked():
             self.sender().blockSignals(True)
             self.sender().setChecked(True)
             self.sender().blockSignals(False)
 
     def _toggle_model_enabled(self, enabled):
+
         self.rb_base.setEnabled(enabled)
         self.rb_fine.setEnabled(enabled)
 
     def _accept(self):
+
         self._settings["reconstruction"] = self.chk_recon.isChecked()
         self._settings["segmentation"] = self.chk_seg.isChecked()
-        self._settings["model"] = "dinov3fine" if self.rb_fine.isChecked() else "dinov3"
+        self._settings["model"] = MODEL_FINE if self.rb_fine.isChecked() else MODEL_BASE
         self.accept()
 
     def result_settings(self):
+
         return self._settings

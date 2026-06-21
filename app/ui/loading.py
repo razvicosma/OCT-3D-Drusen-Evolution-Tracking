@@ -1,28 +1,28 @@
+from PySide6.QtCore import Qt, QTimer, QRect, QPointF, Signal
+from PySide6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar
 )
-from PySide6.QtCore import Qt, QTimer, QRect, QPointF, Signal
-from PySide6.QtGui import QPainter, QPen, QColor, QBrush, QPolygonF
 
-PENDING = 0
-ACTIVE  = 1
-DONE    = 2
+from app.config import PAGE_MARGINS, STEP_PENDING, STEP_ACTIVE, STEP_DONE
 
 
 class StepIcon(QWidget):
 
     def __init__(self, parent=None):
+
         super().__init__(parent)
         self.setFixedSize(22, 22)
-        self._state = PENDING
+        self._state = STEP_PENDING
         self._angle = 0
         self._timer = QTimer(self)
         self._timer.setInterval(16)
         self._timer.timeout.connect(self._rotate)
 
     def set_state(self, state):
+
         self._state = state
-        if state == ACTIVE:
+        if state == STEP_ACTIVE:
             self._angle = 0
             self._timer.start()
         else:
@@ -30,22 +30,24 @@ class StepIcon(QWidget):
         self.update()
 
     def _rotate(self):
+
         self._angle = (self._angle + 5) % 360
         self.update()
 
     def paintEvent(self, event):
+
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
 
         m = 3
         rect = QRect(m, m, self.width() - 2 * m, self.height() - 2 * m)
 
-        if self._state == PENDING:
+        if self._state == STEP_PENDING:
             p.setPen(QPen(QColor("#374151"), 1.5))
             p.setBrush(Qt.NoBrush)
             p.drawEllipse(rect)
 
-        elif self._state == ACTIVE:
+        elif self._state == STEP_ACTIVE:
             p.setPen(QPen(QColor("#1f2937"), 2.0))
             p.setBrush(Qt.NoBrush)
             p.drawEllipse(rect)
@@ -57,7 +59,7 @@ class StepIcon(QWidget):
             span_angle  = -270 * 16
             p.drawArc(rect, start_angle, span_angle)
 
-        elif self._state == DONE:
+        elif self._state == STEP_DONE:
             p.setPen(Qt.NoPen)
             p.setBrush(QBrush(QColor("#22c55e")))
             p.drawEllipse(rect)
@@ -80,9 +82,10 @@ class StepIcon(QWidget):
 class StepItem(QWidget):
 
     def __init__(self, name, parent=None):
+
         super().__init__(parent)
         self.name = name
-        self.state = PENDING
+        self.state = STEP_PENDING
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 4, 0, 4)
@@ -108,18 +111,20 @@ class StepItem(QWidget):
         self._apply_label()
 
     def _apply_label(self):
-        if self.state == PENDING:
+
+        if self.state == STEP_PENDING:
             self.label.setStyleSheet("color: #4b5563;")
-        elif self.state == ACTIVE:
+        elif self.state == STEP_ACTIVE:
             self.label.setStyleSheet("color: #f3f4f6; font-weight: 600;")
-        elif self.state == DONE:
+        elif self.state == STEP_DONE:
             self.label.setStyleSheet("color: #6b7280;")
 
     def set_state(self, state, total=0):
+
         self.state = state
         self.icon.set_state(state)
         self._apply_label()
-        if state == ACTIVE:
+        if state == STEP_ACTIVE:
             if total > 0:
                 self.bar.setMaximum(total)
                 self.bar.setValue(0)
@@ -130,7 +135,8 @@ class StepItem(QWidget):
             self.bar.setVisible(False)
 
     def set_progress(self, current, total):
-        if self.state == ACTIVE and total > 0:
+
+        if self.state == STEP_ACTIVE and total > 0:
             self.bar.setMaximum(total)
             self.bar.setValue(current)
 
@@ -139,14 +145,16 @@ class LoadingPage(QWidget):
     cancelled = Signal()
 
     def __init__(self, parent=None):
+
         super().__init__(parent)
-        self._items: dict[str, StepItem] = {}
+        self._items = {}
         self._active = None
         self._build()
 
     def _build(self):
+
         root = QVBoxLayout(self)
-        root.setContentsMargins(40, 40, 40, 32)
+        root.setContentsMargins(*PAGE_MARGINS)
         root.setSpacing(0)
 
         root.addStretch(1)
@@ -184,6 +192,7 @@ class LoadingPage(QWidget):
         root.addLayout(cancel_row)
 
     def setup(self, step_names, subtitle=""):
+
         while self.steps_layout.count():
             w = self.steps_layout.takeAt(0).widget()
             if w:
@@ -197,18 +206,22 @@ class LoadingPage(QWidget):
             self.steps_layout.addWidget(item)
 
     def mark_active(self, name, total=0):
+
         self._active = name
         if name in self._items:
-            self._items[name].set_state(ACTIVE, total)
+            self._items[name].set_state(STEP_ACTIVE, total)
 
     def mark_done(self, name):
+
         if name in self._items:
-            self._items[name].set_state(DONE)
+            self._items[name].set_state(STEP_DONE)
 
     def update_progress(self, current, total):
+
         if self._active and self._active in self._items:
             self._items[self._active].set_progress(current, total)
 
     def stop(self):
+
         for item in self._items.values():
             item.icon._timer.stop()
