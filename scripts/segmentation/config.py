@@ -19,6 +19,7 @@ DEPTH_SMOOTH_SIGMA = 2.5
 MEDIAN_SMOOTH_KERNEL = 9
 
 DINO_WEIGHTS = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned_vits.pth")
+DINO_WEIGHTS_FINE = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned_vits.pth")
 CHECKPOINT_PATH_RES = os.path.join(ROOT_DIR, "weights", "best_model_17k_4layers_32ch.pth")
 
 CLASS_NAMES = [

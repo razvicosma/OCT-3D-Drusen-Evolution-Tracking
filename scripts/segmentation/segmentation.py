@@ -57,15 +57,20 @@ def smooth_probs_depth(probs_vol, sigma):
     return x.squeeze(0).permute(1, 0, 2, 3)
 
 
-def load_dino(device):
+def load_dino(device, weights_path=None):
 
     model = DINOv3Segmenter(num_classes=NUM_CLASSES)
+    path = weights_path if weights_path is not None else DINO_WEIGHTS
 
-    if os.path.exists(DINO_WEIGHTS):
-        model.load_state_dict(torch.load(DINO_WEIGHTS, map_location=device, weights_only=True))
-        print(f"Loaded DINOv3 weights: {DINO_WEIGHTS}")
+    if os.path.exists(path):
+        ckpt = torch.load(path, map_location=device, weights_only=False)
+        if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+            model.load_state_dict(ckpt["model_state_dict"])
+        else:
+            model.load_state_dict(ckpt)
+        print(f"Loaded DINOv3 weights: {path}")
     else:
-        print(f"Weights not found: {DINO_WEIGHTS}")
+        print(f"Weights not found: {path}")
 
     model.to(device).eval()
 
@@ -82,23 +87,27 @@ def free_dino(model):
         torch.mps.empty_cache()
 
 
-def build_front_batch(volume, idxs):
+def build_front_batch(volume, indices):
 
-    slices_np = np.stack([cv2.resize(volume[i], SLICE_SIZE, interpolation=cv2.INTER_LINEAR).astype(np.float32) / 255.0 for i in idxs], axis=0)
+    slices_np = np.stack([cv2.resize(volume[i], SLICE_SIZE, interpolation=cv2.INTER_LINEAR).astype(np.float32) / 255.0 for i in indices], axis=0)
 
     return torch.from_numpy(np.stack([slices_np, slices_np, slices_np], axis=1))
 
 
-def run_segmentation(volume, device, batch_size=DINO_BATCH):
+def run_segmentation(volume, device, weights_path=None, progress_fn=None, batch_size=DINO_BATCH):
 
-    model = load_dino(device)
+    model = load_dino(device, weights_path=weights_path)
     D, H, W = volume.shape
     masks = np.zeros((D, H, W), dtype=np.uint8)
 
     with torch.no_grad():
         probs_slices = []
+        iterator = tqdm(range(0, D, batch_size), desc="Segmenting slices") if progress_fn is None else range(0, D, batch_size)
 
-        for i in tqdm(range(0, D, batch_size), desc="Segmenting slices"):
+        for i in iterator:
+            if progress_fn:
+                progress_fn(min(i + batch_size, D), D)
+
             idxs = list(range(i, min(i + batch_size, D)))
             batch_t = build_front_batch(volume, idxs)
             batch_gpu = normalise_batch(batch_t, device)
