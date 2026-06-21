@@ -8,10 +8,10 @@ import numpy as np
 
 from scripts.segmentation.loader import load_volume
 from scripts.segmentation.visualize import launch_viewer
-from scripts.segmentation.interpolation import resunet_interpolate
 from scripts.segmentation.segmentation import run_segmentation
-from scripts.segmentation.postprocess import smooth_mask_edges, build_class_volumes
-from scripts.segmentation.config import CHECKPOINT_PATH_RES, DENSE_SIZE, COL_STRIDE, SLICE_SIZE, SMOOTHING_KERNEL
+from scripts.segmentation.interpolation import resunet_interpolate
+from scripts.segmentation.postprocess import median_smooth_w, build_class_volumes
+from scripts.segmentation.config import CHECKPOINT_PATH_RES, DENSE_SIZE, COL_STRIDE, SLICE_SIZE, NUM_SLICES, MEDIAN_SMOOTH_KERNEL
 
 def build_sparse_display(sparse_volume):
 
@@ -54,7 +54,7 @@ def main():
     dense_masks = run_segmentation(dense_volume, device)
     print(f"Dense masks: {dense_masks.shape}")
 
-    #dense_masks = smooth_mask_edges(dense_masks, kernel=SMOOTHING_KERNEL, device=device)
+    dense_masks = median_smooth_w(dense_masks, kernel=MEDIAN_SMOOTH_KERNEL, device=device)
 
     class_vols = build_class_volumes(dense_masks)
 

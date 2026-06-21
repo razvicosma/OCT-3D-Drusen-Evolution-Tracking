@@ -69,9 +69,11 @@ def resunet_interpolate(sparse_volume, device, checkpoint=CHECKPOINT_PATH_RES, b
         for j in range(curr):
             inpaint_vol[i + j] = (np.clip(preds[j], 0, 1) * 255.0).astype(np.uint8)
 
+        del in_c, in_m, inp, preds
+
     result = inpaint_vol.transpose(2, 1, 0)
 
-    del model, inp, preds
+    del model
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()

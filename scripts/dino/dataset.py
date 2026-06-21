@@ -17,23 +17,23 @@ class OCTDataset(Dataset):
 
         img_dir = str(img_dir)
         msk_dir = str(msk_dir)
-        
+
         valid_exts = ('.jpeg', '.jpg', '.png', '.tif', '.tiff')
         img_stems = {}
 
         for f in os.listdir(img_dir):
             if f.endswith(valid_exts):
                 img_stems[os.path.splitext(f)[0]] = os.path.join(img_dir, f)
-                
+
         msk_stems = {}
 
         for f in os.listdir(msk_dir):
             if f.endswith(valid_exts):
                 msk_stems[os.path.splitext(f)[0]] = os.path.join(msk_dir, f)
-                
+
         common = sorted(img_stems.keys() & msk_stems.keys())
         self.pairs = [(img_stems[s], msk_stems[s]) for s in common]
-        
+
         if len(self.pairs) == 0:
             raise RuntimeError(f"No matching pairs found between {img_dir} and {msk_dir}")
 
@@ -47,17 +47,17 @@ class OCTDataset(Dataset):
         image = cv2.imread(img_path, cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mask = cv2.imread(msk_path, cv2.IMREAD_GRAYSCALE)
-        
+
         image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
         mask = cv2.resize(mask, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_NEAREST)
-        
+
         image = image.astype(np.float32) / 255.0
         image = (image - IMAGENET_MEAN) / IMAGENET_STD
         mask = mask.astype(np.int64)
-        
+
         image = torch.from_numpy(image).permute(2, 0, 1)
         mask = torch.from_numpy(mask)
-        
+
         return image, mask
 
 class AugmentedOCTDataset(Dataset):
@@ -71,7 +71,7 @@ class AugmentedOCTDataset(Dataset):
         self.brightness_jitter = brightness_jitter
         self.contrast_jitter = contrast_jitter
         self.noise_std = noise_std
-        
+
         self.mean_t = torch.from_numpy(IMAGENET_MEAN).to(torch.float32).reshape(3, 1, 1)
         self.std_t = torch.from_numpy(IMAGENET_STD).to(torch.float32).reshape(3, 1, 1)
 
@@ -122,5 +122,35 @@ class AugmentedOCTDataset(Dataset):
 
         image = torch.clamp(image, 0.0, 1.0)
         image = (image - self.mean_t) / self.std_t
+
+        return image, mask
+
+class UnsupervisedOCTDataset(Dataset):
+
+    def __init__(self, root_dir):
+
+        self.image_paths = []
+        valid_exts = ('.jpeg', '.jpg', '.png', '.tif', '.tiff')
+
+        for dirpath, _, filenames in os.walk(root_dir):
+            for f in filenames:
+                if f.lower().endswith(valid_exts):
+                    self.image_paths.append(os.path.join(dirpath, f))
+
+    def __len__(self):
+
+        return len(self.image_paths)
+
+    def __getitem__(self, idx):
+
+        img_path = self.image_paths[idx]
+        image = cv2.cvtColor(cv2.imread(img_path, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
+        image = cv2.resize(image, (IMAGE_SIZE, IMAGE_SIZE), interpolation=cv2.INTER_LINEAR)
+
+        mask = np.zeros((IMAGE_SIZE, IMAGE_SIZE), dtype=np.int64)
+
+        image = (image.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD
+        image = torch.from_numpy(image).float().permute(2, 0, 1)
+        mask  = torch.from_numpy(mask)
 
         return image, mask

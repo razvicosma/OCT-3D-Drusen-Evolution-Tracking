@@ -41,7 +41,7 @@ class DINOv3Segmenter(nn.Module):
     def __init__(self, num_classes=NUM_CLASSES):
 
         super().__init__()
-        
+
         backbone = timm.create_model(
             'vit_small_patch16_dinov3.lvd1689m',
             pretrained=False,
