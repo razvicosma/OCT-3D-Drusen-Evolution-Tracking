@@ -136,7 +136,7 @@ def train_unsupervised(student_model, teacher_model, loader, optimizer, criterio
 
     student_model.train()
     teacher_model.eval()
-    
+
     total_loss = 0.0
     total_ce = 0.0
     total_dice = 0.0
@@ -154,12 +154,12 @@ def train_unsupervised(student_model, teacher_model, loader, optimizer, criterio
 
         outputs = student_model(images)
         loss = criterion(outputs, pseudo_masks)
-        
+
         ce_loss = criterion.ce(outputs, pseudo_masks)
         dice_loss = criterion.dice(outputs, pseudo_masks)
         sobel_loss = criterion.sobel(outputs)
         contig_loss = criterion.contiguity(outputs)
-        
+
         loss.backward()
         torch.nn.utils.clip_grad_norm_(student_model.parameters(), max_norm=1.0)
         optimizer.step()
@@ -171,4 +171,5 @@ def train_unsupervised(student_model, teacher_model, loader, optimizer, criterio
         total_contig += contig_loss.item()
 
     n = len(loader)
+
     return total_loss / n, total_ce / n, total_dice / n, total_sobel / n, total_contig / n

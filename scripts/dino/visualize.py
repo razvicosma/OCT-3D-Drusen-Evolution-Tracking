@@ -14,23 +14,23 @@ from scripts.dino.config import (
 def plot_confusion_matrix(model, dataset, device, batch_size, num_workers=4):
 
     model.eval()
-    
+
     cm = np.zeros((NUM_CLASSES, NUM_CLASSES), dtype=np.int64)
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
-    
+
     with torch.no_grad():
         for images, masks in loader:
             images = images.to(device)
             logits = model(images)
             preds = torch.argmax(logits, dim=1).cpu().numpy()
             masks = masks.numpy()
-            
+
             for i in range(len(masks)):
                 y_true = masks[i].flatten()
                 y_pred = preds[i].flatten()
                 valid = (y_true >= 0) & (y_true < NUM_CLASSES)
                 cm += np.bincount(NUM_CLASSES * y_true[valid] + y_pred[valid], minlength=NUM_CLASSES*NUM_CLASSES).reshape(NUM_CLASSES, NUM_CLASSES)
-                
+
     fig_cm, ax_cm = plt.subplots(figsize=(8, 6))
     im = ax_cm.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
     ax_cm.figure.colorbar(im, ax=ax_cm)
@@ -42,7 +42,7 @@ def plot_confusion_matrix(model, dataset, device, batch_size, num_workers=4):
               title='Confusion Matrix',
               ylabel='True label',
               xlabel='Predicted label')
-           
+
     thresh = cm.max() / 2. if cm.max() > 0 else 1.0
 
     for i in range(cm.shape[0]):
@@ -50,6 +50,7 @@ def plot_confusion_matrix(model, dataset, device, batch_size, num_workers=4):
             ax_cm.text(j, i, f"{cm[i, j]:,d}", ha="center", va="center", color="white" if cm[i, j] > thresh else "black")
 
     fig_cm.tight_layout()
+    os.makedirs(PLOTS_DIR, exist_ok=True)
     fig_cm.savefig(CONFUSION_MATRIX_PLOT_PATH)
     plt.close(fig_cm)
 
@@ -97,12 +98,12 @@ def plot_sample_predictions(model, dataset, device, num_samples=3, teacher_model
             axes[i, 2].axis('off')
 
     plt.tight_layout()
+    os.makedirs(PLOTS_DIR, exist_ok=True)
     plt.savefig(PREDICTIONS_PLOT_PATH)
     plt.close()
 
 
 def visualize_predictions(model, dataset, device, batch_size, num_workers=4, num_samples=3, teacher_model=None):
 
-    os.makedirs(PLOTS_DIR, exist_ok=True)
     plot_confusion_matrix(model, dataset, device, batch_size, num_workers)
     plot_sample_predictions(model, dataset, device, num_samples, teacher_model=teacher_model)

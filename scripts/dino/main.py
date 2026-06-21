@@ -17,6 +17,7 @@ from scripts.dino.config import (
 )
 
 def get_args():
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", type=str, choices=["train", "finetune"], default="finetune")
     parser.add_argument("--batch_size", type=int, default=4)
@@ -77,7 +78,7 @@ def main():
 
             lr_head = optimizer.param_groups[0]['lr']
             lr_info = f"LR head: {lr_head:.2e}"
-        
+
             if len(optimizer.param_groups) > 1:
                 lr_info += f" | LR backbone: {optimizer.param_groups[1]['lr']:.2e}"
 
@@ -93,14 +94,14 @@ def main():
                 visualize_predictions(model, val_dataset, device, args.batch_size, num_workers=args.num_workers)
 
     elif args.mode == "finetune":
-        
+
         teacher_model = DINOv3Segmenter(num_classes=NUM_CLASSES).to(device)
         teacher_model.load_state_dict(torch.load(WEIGHTS_PATH, map_location=device))
         teacher_model.eval()
 
         for param in teacher_model.parameters():
             param.requires_grad = False
-            
+
         if os.path.exists(FINETUNE_WEIGHTS_PATH):
             model.load_state_dict(torch.load(FINETUNE_WEIGHTS_PATH, map_location=device))
         elif os.path.exists(WEIGHTS_PATH):
@@ -108,7 +109,7 @@ def main():
 
         full_vis = UnsupervisedOCTDataset(VIS_DIR)
         vis_indices = []
-        
+
         for prefix in ('CNV', 'DME', 'NORMAL'):
             matches = [i for i, p in enumerate(full_vis.image_paths) if os.path.basename(p).startswith(prefix)]
             vis_indices.extend(random.sample(matches, min(2, len(matches))))
@@ -116,7 +117,7 @@ def main():
 
         raw_train = UnsupervisedOCTDataset(UNLABELED_DIR)
         aug_train = AugmentedOCTDataset(raw_train)
-        
+
         train_loader = DataLoader(aug_train, batch_size=args.batch_size, shuffle=True,
                                   num_workers=args.num_workers, pin_memory=True, persistent_workers=True, prefetch_factor=2)
 
@@ -124,16 +125,16 @@ def main():
         train_msk_sup = os.path.join(DATA_DIR, "train_msk")
         valid_img_sup = os.path.join(DATA_DIR, "valid_img")
         valid_msk_sup = os.path.join(DATA_DIR, "valid_msk")
-        
+
         val_train_dataset = OCTDataset(train_img_sup, train_msk_sup)
         val_valid_dataset = OCTDataset(valid_img_sup, valid_msk_sup)
         val_dataset = torch.utils.data.ConcatDataset([val_train_dataset, val_valid_dataset])
-        
+
         val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False,
                                 num_workers=args.num_workers, pin_memory=True, persistent_workers=True, prefetch_factor=2)
 
         criterion = CombinedLoss(weight_ce=0.5, weight_dice=0.5, weight_sobel=1.0, weight_contiguity=1.0)
-        
+
         optimizer = build_optimizer(model, args)
 
         best_train_contig = float('inf')
@@ -146,7 +147,7 @@ def main():
 
             lr_head = optimizer.param_groups[0]['lr']
             lr_info = f"LR head: {lr_head:.2e}"
-            
+
             if len(optimizer.param_groups) > 1:
                 lr_info += f" | LR backbone: {optimizer.param_groups[1]['lr']:.2e}"
 

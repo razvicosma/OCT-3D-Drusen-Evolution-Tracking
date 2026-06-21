@@ -12,17 +12,17 @@ def create_strips(image, n_missing, include_offset=True):
 
     period = n_missing + 1
     offset = random.randint(0, period - 1) if include_offset else 0
-    
+
     cols = np.arange(image.shape[1])
-    
+
     is_missing = (cols > offset) & ((cols - offset) % period != 0)
-    
+
     stripped = image.copy()
     stripped[:, is_missing] = 0.0
-    
+
     mask = np.ones_like(image)
     mask[:, is_missing] = 0.0
-    
+
     return stripped, mask
 
 class OCTDataset(Dataset):
@@ -32,7 +32,7 @@ class OCTDataset(Dataset):
         self.img_size = img_size
         self.period_range = period_range
         self.paths = []
-        
+
         if not os.path.exists(root_dir):
             raise RuntimeError(f"Root_dir does not exist: {root_dir!r}")
 
@@ -46,7 +46,7 @@ class OCTDataset(Dataset):
     def __len__(self):
 
         return len(self.paths)
-    
+
     def __getitem__(self, idx):
 
         img = cv2.imread(self.paths[idx], cv2.IMREAD_GRAYSCALE)

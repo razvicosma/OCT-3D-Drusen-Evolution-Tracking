@@ -14,11 +14,11 @@ class DiceLoss(nn.Module):
         num_classes = logits.shape[1]
         probs = F.softmax(logits, dim=1)
         true_masks_onehot = F.one_hot(true_masks, num_classes=num_classes).permute(0, 3, 1, 2).to(torch.float32)
-        
+
         dims = (2, 3)
         intersection = torch.sum(probs * true_masks_onehot, dims)
         cardinality = torch.sum(probs + true_masks_onehot, dims)
-        
+
         dice_score = (2. * intersection + self.smooth) / (cardinality + self.smooth)
 
         return 1.0 - dice_score.mean()
@@ -56,11 +56,11 @@ class ColumnContiguityLoss(nn.Module):
         probs = F.softmax(logits, dim=1)
         tv = torch.abs(probs[:, :, 1:, :] - probs[:, :, :-1, :]).sum(dim=2)
         penalty = torch.zeros_like(tv)
-        
+
         penalty[:, 0, :] = torch.abs(tv[:, 0, :] - 1.0)
         if probs.shape[1] > 5:
             penalty[:, 5, :] = torch.abs(tv[:, 5, :] - 1.0)
-            
+
         inner_classes = [c for c in range(1, probs.shape[1]) if c != 5]
         if inner_classes:
             penalty[:, inner_classes, :] = torch.abs(tv[:, inner_classes, :] - 2.0)
@@ -86,10 +86,10 @@ class CombinedLoss(nn.Module):
 
         loss = self.weight_ce * self.ce(logits, masks)
         loss += self.weight_dice * self.dice(logits, masks)
-        
+
         if self.weight_sobel > 0:
             loss += self.weight_sobel * self.sobel(logits)
-            
+
         if self.weight_contiguity > 0:
             loss += self.weight_contiguity * self.contiguity(logits)
 

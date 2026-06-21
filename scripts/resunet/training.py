@@ -17,7 +17,7 @@ def train(model, loader, optimizer, criterion, criterion2, device, alpha=ALPHA):
         optimizer.zero_grad()
         inp = torch.cat([stripped, mask], dim=1)
         pred = model(inp)
-        
+
         loss = (1-alpha)*criterion(pred, original) + alpha*criterion2(pred.expand(-1, 3, -1, -1), original.expand(-1, 3, -1, -1),pixels_per_degree=PIXELS_PER_DEGREE)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -47,10 +47,10 @@ def validate(model, loader, criterion, criterion2, device, alpha=ALPHA):
             loss = (1-alpha)*criterion(pred, original) + alpha*ldr_loss
             total_loss += loss.item()
             total_ldr_loss += ldr_loss.item()
-            
+
             ms_ssim_val = ms_ssim(pred, original, data_range=1.0, size_average=True)
             total_ms_ssim += ms_ssim_val.item()
-            
+
             ssim_val = ssim(pred, original, data_range=1.0, size_average=True)
             total_ssim += ssim_val.item()
 

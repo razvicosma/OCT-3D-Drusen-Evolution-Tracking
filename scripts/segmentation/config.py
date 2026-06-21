@@ -9,15 +9,17 @@ IMAGENET_STD = np.array([0.229, 0.224, 0.225])
 NUM_CLASSES = 6
 INPAINT_BATCH = 16
 DINO_BATCH = 16
-COL_STRIDE = 16
-DENSE_SIZE = 497
+COL_STRIDE = 20
+DENSE_SIZE = 512
 IMAGE_SIZE = 512
 SLICE_SIZE = (512, 512)
-NUM_SLICES = 32
-SMOOTHING_KERNEL = 9
+NUM_SLICES = 25
+PROB_SMOOTH_SIGMA = 1.5
+DEPTH_SMOOTH_SIGMA = 2.5
+MEDIAN_SMOOTH_KERNEL = 9
 
-DINO_WEIGHTS = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter.pth")
-CHECKPOINT_PATH_RES = os.path.join(ROOT_DIR, "weights", "best_model_17k.pth")
+DINO_WEIGHTS = os.path.join(ROOT_DIR, "weights", "best_dino_segmenter_finetuned_vits.pth")
+CHECKPOINT_PATH_RES = os.path.join(ROOT_DIR, "weights", "best_model_17k_4layers_32ch.pth")
 
 CLASS_NAMES = [
     "ILM / RNFL",
